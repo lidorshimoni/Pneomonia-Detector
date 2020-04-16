@@ -9,8 +9,6 @@ from keras.preprocessing.image import ImageDataGenerator
 
 import matplotlib.pyplot as plt
 
-
-
 # create generator
 datagen = ImageDataGenerator(rescale=1 / 255,
                              featurewise_center=False,  # set input mean to 0 over the dataset
@@ -39,40 +37,43 @@ datagen = ImageDataGenerator(rescale=1 / 255,
                              # fraction of images reserved for validation (strictly between 0 and 1)
                              validation_split=0.0)
 
-batch_size = 64
+batch_size = 16
 num_classes = 2
 epochs = 20
-num_predictions = 20
+image_input_size = (512, 512)
+
+steps = image_input_size[0]//batch_size
+
 # save_dir = os.path.join(os.getcwd(), 'saved_models')
 
 # data_dir = save_dir = os.path.join(os.getcwd(), 'FIRE-SMOKE-DATASET')
 main_dir = os.path.join(os.getcwd())
 save_dir = main_dir + "/Trained Models/"
-model_name = 'Fire_detection_vgg16_trained_model.h5'
+model_name = 'Pneomonia_{}_vgg16_trained_model.h5'.format(image_input_size[0])
 data_dir = main_dir + '/chest_xray'
 
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 
 early_stop = EarlyStopping(monitor='loss', min_delta=0.001, patience=3, mode='min', verbose=1)
-checkpoint = ModelCheckpoint(save_dir + 'model_best_weights.h5', monitor='loss', verbose=1, save_best_only=True,
+checkpoint = ModelCheckpoint(save_dir + 'model_best_weights_{}.h5'.format(image_input_size[0]), monitor='loss', verbose=1, save_best_only=True,
                              mode='min', period=1)
 early_stop = EarlyStopping(monitor='loss', min_delta=0.001, patience=3, mode='min', verbose=1)
 
 X_train = datagen.flow_from_directory(data_dir + '/train/',
                                       class_mode='categorical',
                                       batch_size=batch_size,
-                                      target_size=(150, 150))
+                                      target_size=(512,512))
 
 # load and iterate test dataset
 X_test = datagen.flow_from_directory(data_dir + '/test/',
                                      class_mode='categorical',
                                      batch_size=batch_size,
-                                     target_size=(150, 150))
+                                     target_size=(512,512))
 
 base_model = keras.applications.vgg16.VGG16(include_top=False,
                                             weights='imagenet',
                                             input_tensor=None,
-                                            input_shape=(150, 150, 3),
+                                            input_shape=(512, 512, 3),
                                             pooling=None, classes=num_classes)
 top_model = base_model.output
 #
@@ -96,7 +97,7 @@ def train():
     model.fit_generator(generator=X_train,
                         validation_data=X_test,
                         epochs=epochs,
-                        steps_per_epoch=100,
+                        steps_per_epoch=steps,
                         validation_steps=100,
                         callbacks=[early_stop, checkpoint]
                         )
@@ -122,6 +123,7 @@ def learn():
     train()
     save()
     score()
+
 
 from tensorflow.python.client import device_lib
 
